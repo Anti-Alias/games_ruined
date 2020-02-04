@@ -25,7 +25,7 @@ The ip of exposed containers will be referred to as **docker_ip**
 henceforth.
 
 ## Running Via Command-Line
-First, navigate to ${project_dir}/backend in the terminal.
+First, navigate to **${project_dir}/backend** in the terminal.
 
 If this is the first time running the application, the database will
 need to be initialized.
@@ -40,7 +40,7 @@ gradlew updateDB
 This will:
 1) Stop/delete the database container if it exists.
 2) Create a new database container and start it.
-3) Run database migration using **Flyway**.
+3) Run all database migrations using **Flyway**.
 
 Once this is done, the application can be run via:
 ```
@@ -50,8 +50,8 @@ For Windows:
 ```
 gradlew startApp
 ```
-This will first start the containers in **docker-compose.yml**, then
-run the vertx app in redploy mode.
+This will first start the containers in **docker-compose.yml** if
+they're not already running, then run the application in redploy mode.
 Whenever the application is rebuilt, it will automatically be
 redeployed.
 To rebuild the application, you can run the command:
@@ -64,7 +64,7 @@ gradlew build
 ```
 which both compiles and runs unit tests on your code.
 
-Two java processes will start from running this:
+Two java processes will start from running the task **startApp**:
 1) The main java process that handles the initial deployment/redeployment.
 2) Deployed application.
 
@@ -104,9 +104,9 @@ These commands also start a helpful **adminer** app hosted on
 The database is also exposed to **${docker_ip}:5432**, so alternative
 database clients may be used by developers as well.
 
-# Database Migrations
+## Database Migrations
 SQL scripts are located in **src/main/resources/db.migration**.
-This application uses **Flyway** plugin to handle database migrations.
+This project uses the **Flyway** plugin to handle database migrations.
 Whenever you wish to test a new SQL script, you will need to run:
 ```
 ./gradlew updateDB
@@ -121,9 +121,9 @@ Keep in mind that all data will be deleted in this process as the old
 database container is discarded and a new one is spun up followed by
 the execution of all migrations scripts.
 The filename for the migrations scripts should be in the format:
-**V${migration_no}__${script_name}.sql**
+**V${migration_no}__${script_name}.sql**.
 It should be noted that there can only be a single migration script per
-migration. There cannot be, for example two files with the names:
+migration. There cannot be, for example, two files with the names:
 * V1__foo.sql
 * V1__bar.sql
 
