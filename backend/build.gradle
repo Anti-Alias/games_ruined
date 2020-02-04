@@ -8,6 +8,7 @@ buildscript {
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.30'
     id 'org.flywaydb.flyway' version '6.2.1'
+    id 'com.dorongold.task-tree' version '1.5'
 }
 
 apply plugin: 'org.mini2Dx.parcl'
@@ -83,7 +84,7 @@ task refreshDB() {
 
 task startApp(type: JavaExec) {
     group 'ruined'
-    description 'Runs the application. Redploys code when classes are rebuilt.'
+    description 'Runs the application in the foreground. Redploys code when classes are rebuilt.'
     classpath sourceSets.main.runtimeClasspath
     main 'io.vertx.core.Launcher'
     args 'run', 'ruined.RuinedVerticle', '--redeploy="build/classes/kotlin/**/*.class"', '--launcher-class="io.vertx.core.Launcher"'
@@ -125,7 +126,7 @@ task stopApp(type: Exec) {
         commandLine 'WMIC', 'PROCESS', 'WHERE', "CommandLine LIKE '%vertx.id=%'", 'CALL', 'TERMINATE'
     }
     else {
-        // Missing Linux/Unix implementation
+        // Missing *Nix implementation
     }
 }
 
