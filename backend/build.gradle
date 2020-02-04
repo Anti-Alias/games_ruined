@@ -1,0 +1,144 @@
+buildscript {
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.2.9'
+        classpath 'org.mini2Dx:parcl:1.6.1'
+    }
+}
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.30'
+    id 'org.flywaydb.flyway' version '6.2.1'
+}
+
+apply plugin: 'org.mini2Dx.parcl'
+mainClassName = 'ruined.RuinedLauncherKt'
+
+parcl {
+    exe {
+        vmArgs = ["-Xmx1g"]
+        appArgs = ["arg1", "arg2"]
+        exeName = "myapplication"
+        zipName = 'my-game-windows.zip'
+        withJre("C:\\Program Files\\Java\\jre1.8.0_171")
+    }
+
+    app {
+        appName = "My Application"
+        applicationCategory = "public.app-category.adventure-games"
+        displayName = 'My Application'
+    }
+
+    linux {
+        binName = "myapplication"
+    }
+}
+
+ext {
+    kotlin_version='1.3.30'
+    vertx_version='3.8.1'
+}
+
+// IP of containers on host machine
+def ip = isWindows() ? '192.168.99.100' : 'localhost'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "io.vertx:vertx-core:$vertx_version"
+    implementation "io.vertx:vertx-lang-kotlin:$vertx_version"
+    implementation "io.vertx:vertx-web:$vertx_version"
+    implementation "io.vertx:vertx-lang-kotlin-coroutines:$vertx_version"
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+}
+
+flyway {
+    url = "jdbc:postgresql://${ip}/ruined"
+    user = 'admin'
+    password = 'admin'
+}
+
+task sleep() {
+    group 'ruined.helpers'
+    description 'Sleeps for 1 second'
+    doLast {
+        println('Sleeping for 1 second...')
+        sleep(1000)
+    }
+}
+
+task refreshDB() {
+    group 'ruined.helpers'
+    description 'Stops db container if it is running, removes it and starts it again. Flyway migration is then applied.'
+    doLast {
+        exec { commandLine 'docker-compose', 'stop', 'db' }
+        exec { commandLine 'docker-compose', 'rm', '-f', 'db' }
+        exec { commandLine 'docker-compose', 'up', '-d', 'db' }
+    }
+}
+
+task startApp(type: JavaExec) {
+    group 'ruined'
+    description 'Runs the application. Redploys code when classes are rebuilt.'
+    classpath sourceSets.main.runtimeClasspath
+    main 'io.vertx.core.Launcher'
+    args 'run', 'ruined.RuinedVerticle', '--redeploy="build/classes/kotlin/**/*.class"', '--launcher-class="io.vertx.core.Launcher"'
+}
+
+task debugApp(type: JavaExec) {
+    group 'ruined'
+    description 'Runs the application. Allows for the use of a debugger in an IDE. Does not redploy code when classes are rebuilt.'
+    classpath sourceSets.main.runtimeClasspath
+    main 'io.vertx.core.Launcher'
+    args 'run', 'ruined.RuinedVerticle'
+}
+
+task startContainers() {
+    group = 'ruined.assist'
+    description 'Starts containers specified in docker-compose.yml'
+    doLast {
+        exec {
+            commandLine 'docker-compose', 'up', '-d'
+        }
+    }
+}
+
+task updateDB() {
+    group 'ruined'
+    description 'Clears current database and runs migration'
+}
+
+task stopContainers(type: Exec) {
+    group = 'ruined'
+    description 'Stops containers specified in docker-compose.yml'
+    commandLine 'docker-compose', 'stop'
+}
+
+task stopApp(type: Exec) {
+    group = 'ruined'
+    description 'Kills off any orphaned verticles that might still be running. This is necessary when the task startApp has been forcibly closed.'
+    if(isWindows()) {
+        commandLine 'WMIC', 'PROCESS', 'WHERE', "CommandLine LIKE '%vertx.id=%'", 'CALL', 'TERMINATE'
+    }
+    else {
+        // Missing Linux/Unix implementation
+    }
+}
+
+compileKotlin.kotlinOptions.jvmTarget = '1.8'
+
+flywayMigrate.dependsOn(':startContainers', ':sleep')
+updateDB.dependsOn(':refreshDB', ':flywayMigrate')
+startApp.dependsOn(':startContainers', ':sleep')
+debugApp.dependsOn(':startContainers', ':sleep')
+
+sleep.mustRunAfter(':startContainers')
+flywayMigrate.mustRunAfter(':refreshDB')
+
+def isWindows() {
+    return System.env['OS'].contains('Windows')
+}
