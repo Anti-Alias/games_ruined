@@ -40,7 +40,9 @@ class RuinedVerticle : CoroutineVerticle() {
         val server = vertx.createHttpServer()
         val router = createRouter()
         server.requestHandler(router)
-        server.listenAwait(8080)
+        val port = 8080
+        logger.info("Binding to port $port...")
+        server.listenAwait(port, "localhost")
         logger.info("Started HTTP server")
         return server
     }
@@ -54,7 +56,7 @@ class RuinedVerticle : CoroutineVerticle() {
 
     private fun handleHealthCheck(ctx: RoutingContext) {
         logger.info("Here")
-        ctx.response().end("Fek off")
+        ctx.response().end("Server up and running")
     }
 
     private suspend fun handleGraphQL(ctx: RoutingContext) {
