@@ -27,11 +27,15 @@ CREATE TABLE "game" (
     FOREIGN KEY (platform_id) REFERENCES "platform"(id)
 );
 
--- Inserts some initial data
-INSERT INTO "platform" (id, name, simple_name) VALUES
-    (0, 'Windows', 'PC'),
-    (1, 'Mac', 'OSX'),
-    (2, 'Nintendo Entertainment System', 'NES'),
-    (3, 'Sega Genesis', 'Genesis'),
-    (4, 'Playstation 1', 'PS1'),
-    (5, 'Nintendo 64', 'N64');
+-- Indexes
+CREATE INDEX ON "user"(id);
+CREATE INDEX ON "user"(email);
+CREATE INDEX ON "resource"(id);
+CREATE INDEX ON "resource"(user_id);
+CREATE INDEX ON "resource"(type);
+CREATE INDEX ON "platform"(id);
+CREATE INDEX ON "platform"(name);
+CREATE INDEX ON "platform"(simple_name);
+CREATE INDEX ON "game"(id);
+CREATE INDEX ON "game"(name);
+CREATE INDEX ON "game"(platform_id);

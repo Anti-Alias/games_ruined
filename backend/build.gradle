@@ -12,6 +12,7 @@ plugins {
 }
 
 apply plugin: 'org.mini2Dx.parcl'
+apply from: 'scripts.gradle'
 mainClassName = 'ruined.RuinedLauncherKt'
 
 parcl {
@@ -99,7 +100,7 @@ task debugApp(type: JavaExec) {
 }
 
 task startContainers() {
-    group = 'ruined.assist'
+    group = 'ruined'
     description 'Starts containers specified in docker-compose.yml'
     doLast {
         exec {
@@ -127,6 +128,12 @@ task stopApp(type: Exec) {
     }
     else {
         // Missing *Nix implementation
+    }
+}
+
+task thingDo {
+    doLast {
+        println(generateN64GamesSQL())
     }
 }
 
