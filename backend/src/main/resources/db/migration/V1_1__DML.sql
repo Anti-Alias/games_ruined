@@ -8,7 +8,6 @@ INSERT INTO "platform" (id, name, simple_name) VALUES
     (5, 'Nintendo 64', 'N64');
 
 INSERT INTO "game" (name, platform_id) VALUES
-    ('Title(s)', 5),
     ('1080° Snowboarding', 5),
     ('64 Hanafuda: Tenshi no Yakusoku', 5),
     ('64 Ozumo', 5),
