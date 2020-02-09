@@ -55,7 +55,6 @@ class RuinedVerticle : CoroutineVerticle() {
     }
 
     private fun handleHealthCheck(ctx: RoutingContext) {
-        logger.info("Here")
         ctx.response().end("Server up and running")
     }
 

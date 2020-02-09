@@ -1,7 +1,6 @@
 buildscript {
     dependencies {
         classpath 'org.postgresql:postgresql:42.2.9'
-        classpath 'org.mini2Dx:parcl:1.6.1'
     }
 }
 
@@ -9,30 +8,6 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.30'
     id 'org.flywaydb.flyway' version '6.2.1'
     id 'com.dorongold.task-tree' version '1.5'
-}
-
-apply plugin: 'org.mini2Dx.parcl'
-apply from: 'scripts.gradle'
-mainClassName = 'ruined.RuinedLauncherKt'
-
-parcl {
-    exe {
-        vmArgs = ["-Xmx1g"]
-        appArgs = ["arg1", "arg2"]
-        exeName = "myapplication"
-        zipName = 'my-game-windows.zip'
-        withJre("C:\\Program Files\\Java\\jre1.8.0_171")
-    }
-
-    app {
-        appName = "My Application"
-        applicationCategory = "public.app-category.adventure-games"
-        displayName = 'My Application'
-    }
-
-    linux {
-        binName = "myapplication"
-    }
 }
 
 ext {
@@ -88,15 +63,10 @@ task startApp(type: JavaExec) {
     description 'Runs the application in the foreground. Redploys code when classes are rebuilt.'
     classpath sourceSets.main.runtimeClasspath
     main 'io.vertx.core.Launcher'
-    args 'run', 'ruined.RuinedVerticle', '--redeploy="build/classes/kotlin/**/*.class"', '--launcher-class="io.vertx.core.Launcher"'
-}
-
-task debugApp(type: JavaExec) {
-    group 'ruined'
-    description 'Runs the application. Allows for the use of a debugger in an IDE. Does not redploy code when classes are rebuilt.'
-    classpath sourceSets.main.runtimeClasspath
-    main 'io.vertx.core.Launcher'
-    args 'run', 'ruined.RuinedVerticle'
+    args 'run', 'ruined.RuinedVerticle',
+            '--redeploy="build/classes/kotlin/**/*.class"',
+            '--launcher-class="io.vertx.core.Launcher"',
+            '--java-opts', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005'
 }
 
 task startContainers() {
@@ -142,7 +112,6 @@ compileKotlin.kotlinOptions.jvmTarget = '1.8'
 flywayMigrate.dependsOn(':startContainers', ':sleep')
 updateDB.dependsOn(':refreshDB', ':flywayMigrate')
 startApp.dependsOn(':startContainers', ':sleep')
-debugApp.dependsOn(':startContainers', ':sleep')
 
 sleep.mustRunAfter(':startContainers')
 flywayMigrate.mustRunAfter(':refreshDB')
