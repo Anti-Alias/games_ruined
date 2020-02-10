@@ -2,7 +2,6 @@ package ruined
 
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.http.HttpServer
-import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.asyncsql.AsyncSQLClient
@@ -15,9 +14,10 @@ import io.vertx.kotlin.core.http.closeAwait
 import io.vertx.kotlin.core.http.listenAwait
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.dispatcher
-import io.vertx.kotlin.ext.sql.callAwait
 import io.vertx.kotlin.ext.sql.closeAwait
+import io.vertx.kotlin.ext.sql.queryAwait
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ruined.exception.RuinedException
 import java.net.ConnectException
@@ -65,27 +65,24 @@ class RuinedVerticle : CoroutineVerticle() {
         return server
     }
 
-    suspend fun createSQLClient(config: JsonObject, retries: Int = 10): AsyncSQLClient {
+    suspend fun createSQLClient(config: JsonObject, retries: Int = 5): AsyncSQLClient {
         if(retries <= 0)
             throw RuinedException("retries must be > 0. Got $retries.")
         logger.info("Creating SQL client")
-        val hosts: JsonArray = config.getJsonArray("hosts")
-        var attempt = 0
-        while(attempt < retries) {
-            for (host in hosts) {
-                config.put("host", host)
-                val client = PostgreSQLClient.createShared(vertx, config)
-                try {
-                    val port: Int = config.getInteger("port")
-                    logger.info("Attempt $attempt: Testing database connectivity at $host:$port")
-                    client.callAwait("SELECT 1")
-                } catch (e: ConnectException) {
-                    logger.info("Database connectivity failed")
-                    client.closeAwait()
-                    attempt += 1
-                }
-                return client
+        repeat(retries) { attempt ->
+            val client = PostgreSQLClient.createShared(vertx, config)
+            try {
+                val host: String = config.getString("host")
+                val port: Int = config.getInteger("port")
+                logger.info("Attempt $attempt: Testing database connectivity at $host:$port...")
+                client.queryAwait("SELECT 1")
+            } catch (e: ConnectException) {
+                logger.info("Database connectivity failed")
+                client.closeAwait()
+                delay(1000)
             }
+            logger.info("Created SQL client")
+            return client
         }
         throw RuinedException("Failed to create SQL Client")
     }
