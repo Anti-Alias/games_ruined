@@ -105,12 +105,6 @@ task stopApp(type: Exec) {
     }
 }
 
-task thingDo {
-    doLast {
-        println(generateN64GamesSQL())
-    }
-}
-
 compileKotlin.kotlinOptions.jvmTarget = '1.8'
 
 flywayMigrate.dependsOn(':startContainers', ':sleep')
