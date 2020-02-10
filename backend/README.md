@@ -10,15 +10,13 @@ This generally comes included with both **Docker Desktop** and **Docker Toolbox*
 Test installation via ```docker-compose --version```.
 * Install [JDK](https://www.oracle.com/technetwork/java/javase/downloads/jdk13-downloads-5672538.html) version 1.8 or
 above.
-* If using **Docker Toolbox**, start the program **Docker Quickstart Terminal** before attempting to run any gradle
-commands.
-This creates a Linux VM named **default** using **Virtual Box**, which will handle all docker-related commands.
-You may need to rerun this application to start the VM for every restart.
-Also note that applications normally exposed to **127.0.0.1** (When using Docker Desktop) will likely be exposed to
-**192.168.99.100**.
-This can be confirmed by running the command
-```docker-machine ip default```.
-The ip of exposed containers will be referred to as **docker_ip** henceforth.
+* If using **Docker Toolbox**, be sure to set the environment variable **DOCKER_IP** to the output of the
+command ```docker-machine ip default```, likely **192.168.99.100**.
+This **DOCKER_IP** defaults to "localhost", otherwise.
+Afterwards, start the program **Docker Quickstart Terminal**.
+This creates a Linux VM named **default** using **Virtual Box**, which will handle all docker-related commands used by
+gradle.
+You may need to rerun **Docker Quickstart Terminal** to start the VM for every restart.
 
 ## Running Via Command-Line
 First, navigate to **${project_dir}/backend** in the terminal.
@@ -84,9 +82,9 @@ The latest version of **Postgresql** is the database of choice.
 Whenever the gradle tasks **startApp** or **debugApp** are invoked, the containerized database will be started unless
 already running.
 Developers need not install Postgresql manually.
-These commands also start a helpful **adminer** app hosted on **${docker_ip}:8081** for viewing/manipulating tables in a
+These commands also start a helpful **adminer** app hosted on **${DOCKER_IP}:8081** for viewing/manipulating tables in a
 browser.
-The database is also exposed to **${docker_ip}:5432**, so alternative database clients may be used by developers as
+The database is also exposed to **${DOCKER_IP}:5432**, so alternative database clients may be used by developers as
 well.
 
 ## Database Migrations

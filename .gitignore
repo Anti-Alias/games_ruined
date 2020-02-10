@@ -3,6 +3,7 @@ backend/.gradle
 backend/.idea
 backend/build
 backend/local.properties
+backend/conf
 
 # android
 android/*.iml

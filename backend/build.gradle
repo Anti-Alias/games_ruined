@@ -14,10 +14,16 @@ ext {
     kotlin_version='1.3.30'
     vertx_version='3.8.1'
     slf4j_version='1.7.30'
+    graphql_version='13.0'
 }
 
-// IP of containers on host machine
-def ip = isWindows() ? '192.168.99.100' : 'localhost'
+// IP of docker machine. Defaults to localhost if environment variable is not set.
+def docker_ip = System.getenv().getOrDefault("DOCKER_IP", "localhost")
+
+// Helpful function that determines if this machine is running on Windows or not.
+def isWindows() {
+    return System.env['OS'].contains('Windows')
+}
 
 repositories {
     mavenCentral()
@@ -33,23 +39,25 @@ dependencies {
     implementation "io.vertx:vertx-lang-kotlin-coroutines:$vertx_version"
     implementation "io.vertx:vertx-config:$vertx_version"
     implementation "org.slf4j:slf4j-api:$slf4j_version"
+    implementation "com.graphql-java:graphql-java:$graphql_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
 
 flyway {
-    url = "jdbc:postgresql://${ip}/ruined"
+    url = "jdbc:postgresql://${docker_ip}/ruined"
     user = 'admin'
     password = 'admin'
+    connectRetries = 5
 }
 
-task sleep() {
-    group 'ruined.helpers'
-    description 'Sleeps for 1 second'
-    doLast {
-        println('Sleeping for 1 second...')
-        sleep(1000)
+task preprocessConfigs(type: Copy) {
+    group 'ruined'
+    from('conf.templates') {
+        include '**/*.json'
     }
+    into 'conf'
+    expand(DOCKER_IP: docker_ip)
 }
 
 task refreshDB() {
@@ -107,13 +115,7 @@ task stopApp(type: Exec) {
 
 compileKotlin.kotlinOptions.jvmTarget = '1.8'
 
-flywayMigrate.dependsOn(':startContainers', ':sleep')
+flywayMigrate.dependsOn(':startContainers')
 updateDB.dependsOn(':refreshDB', ':flywayMigrate')
-startApp.dependsOn(':startContainers', ':sleep')
-
-sleep.mustRunAfter(':startContainers')
+startApp.dependsOn(':startContainers', ':preprocessConfigs')
 flywayMigrate.mustRunAfter(':refreshDB')
-
-def isWindows() {
-    return System.env['OS'].contains('Windows')
-}
