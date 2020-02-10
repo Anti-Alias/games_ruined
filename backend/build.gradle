@@ -13,6 +13,7 @@ plugins {
 ext {
     kotlin_version='1.3.30'
     vertx_version='3.8.1'
+    slf4j_version='1.7.30'
 }
 
 // IP of containers on host machine
@@ -31,6 +32,7 @@ dependencies {
     implementation "io.vertx:vertx-mysql-postgresql-client:$vertx_version"
     implementation "io.vertx:vertx-lang-kotlin-coroutines:$vertx_version"
     implementation "io.vertx:vertx-config:$vertx_version"
+    implementation "org.slf4j:slf4j-api:$slf4j_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
