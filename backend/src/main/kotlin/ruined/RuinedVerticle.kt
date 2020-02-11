@@ -1,7 +1,11 @@
 package ruined
 
+import graphql.ExecutionInput
+import graphql.GraphQL
+import graphql.GraphQLError
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.http.HttpServer
+import io.vertx.core.json.DecodeException
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.asyncsql.AsyncSQLClient
@@ -9,6 +13,7 @@ import io.vertx.ext.asyncsql.PostgreSQLClient
 import io.vertx.ext.web.Route
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.handler.BodyHandler
 import io.vertx.kotlin.config.getConfigAwait
 import io.vertx.kotlin.core.http.closeAwait
 import io.vertx.kotlin.core.http.listenAwait
@@ -29,6 +34,7 @@ class RuinedVerticle : CoroutineVerticle() {
 
     private lateinit var httpServer: HttpServer
     private lateinit var sqlClient: AsyncSQLClient
+    private lateinit var graphQL: GraphQL
 
     /**
      * Invoked when this verticle is to be started.
@@ -39,7 +45,8 @@ class RuinedVerticle : CoroutineVerticle() {
         val httpConfig: JsonObject = config.getJsonObject("http")
         val dbConfig: JsonObject = config.getJsonObject("db")
         val futServer = async { createHttpServer(httpConfig) }
-        val futSQLClient = async { createSQLClient(dbConfig)}
+        val futSQLClient = async { createSQLClient(dbConfig) }
+        this.graphQL = GraphQLProvider().provide()
         this.httpServer = futServer.await()
         this.sqlClient = futSQLClient.await()
     }
@@ -89,17 +96,66 @@ class RuinedVerticle : CoroutineVerticle() {
 
     private fun createRouter(): Router {
         val router = Router.router(vertx)
-        router.get("/healthcheck").suspendingHandler { handleHealthCheck(it) }
-        router.post("/graphql").suspendingHandler { handleGraphQL(it) }
+        router.get("/healthcheck").handler { handleHealthCheck(it) }
+        router.post("/graphql").handler(BodyHandler.create())
+        router.post("/graphql").handler { handleGraphQL(it) }
         return router
     }
 
-    suspend fun handleHealthCheck(ctx: RoutingContext) {
+    fun handleHealthCheck(ctx: RoutingContext) {
         ctx.response().end("Server up and running!!!")
     }
 
-    suspend fun handleGraphQL(ctx: RoutingContext) {
-        ctx.response().end("Ok, it works!")
+    fun handleGraphQL(ctx: RoutingContext) {
+        try {
+            // Parses body
+            val body: JsonObject = ctx.bodyAsJson
+
+            // Builds execution input to pass into GraphQL instance
+            val operationName: String? = body.getString("operationName", null)
+            val variables: Map<String, Any>? = parseVariables(body)
+            val inputBuilder = ExecutionInput.newExecutionInput().query(body.getString("query"))
+            if(operationName != null)
+                inputBuilder.operationName(operationName)
+            if(variables != null)
+                inputBuilder.variables(variables)
+
+            // Executes input
+            val fut = graphQL.executeAsync(inputBuilder.build())
+
+            // Handles result asynchronously
+            fut.thenAccept { result ->
+                val data: Map<String, Any>? = result.getData()
+                val errors: List<GraphQLError> = result.errors
+                val response = JsonObject()
+                if(data != null) response.put("data", data)
+                if(errors.isNotEmpty()) response.put("errors", errors)
+                ctx.response()
+                    .putHeader("content-type", "application/json; charset=utf-8")
+                    .end(response.toString())
+            }
+        }
+        catch(e: DecodeException) {
+            ctx.response()
+                .setStatusCode(400)
+                .end("Could not parse JSON body")
+        }
+        catch(t: Throwable) {
+            ctx.fail(500)
+            logger.warn("Uncaught Exception", t)
+        }
+    }
+
+    private fun parseVariables(body: JsonObject): Map<String, Any>? {
+        val variables: Any? = body.getValue("variables", null)
+        return when(variables) {
+            is String -> JsonObject(variables).map
+            is JsonObject -> variables.map
+            null -> null
+            else -> throw RuinedException(
+                "Type of 'variables' in GraphQL request was of type ${variables.javaClass.name}. Json object expected."
+            )
+        }
     }
 
     companion object {
