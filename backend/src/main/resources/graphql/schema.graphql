@@ -1,0 +1,32 @@
+type Query {
+    hello: String
+    games(id: ID=null, name: String=null, platformId: ID=null): [Game!]
+}
+
+type User {
+    id: ID!
+    email: String!
+}
+
+type Resource {
+    id: ID!
+    type: ResourceType!
+    user: User!
+}
+
+type Game {
+    id: ID!
+    name: String!
+    platform: Platform!
+}
+
+type Platform {
+    id: ID!
+    name: String!
+    simpleName: String!
+}
+
+enum ResourceType {
+    TEXTURE
+    SOUND
+}

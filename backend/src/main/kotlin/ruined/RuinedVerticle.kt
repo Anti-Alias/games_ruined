@@ -1,16 +1,17 @@
 package ruined
 
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import graphql.ExecutionInput
 import graphql.GraphQL
 import graphql.GraphQLError
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.http.HttpServer
 import io.vertx.core.json.DecodeException
+import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.asyncsql.AsyncSQLClient
 import io.vertx.ext.asyncsql.PostgreSQLClient
-import io.vertx.ext.web.Route
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.handler.BodyHandler
@@ -18,12 +19,10 @@ import io.vertx.kotlin.config.getConfigAwait
 import io.vertx.kotlin.core.http.closeAwait
 import io.vertx.kotlin.core.http.listenAwait
 import io.vertx.kotlin.coroutines.CoroutineVerticle
-import io.vertx.kotlin.coroutines.dispatcher
 import io.vertx.kotlin.ext.sql.closeAwait
 import io.vertx.kotlin.ext.sql.queryAwait
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import ruined.exception.RuinedException
 import java.net.ConnectException
 
@@ -41,14 +40,15 @@ class RuinedVerticle : CoroutineVerticle() {
      * Starts HTTP server and acquires connection to database.
      */
     override suspend fun start() {
+        Json.mapper.registerModule(KotlinModule())
         val config: JsonObject = ConfigRetriever.create(vertx).getConfigAwait()
         val httpConfig: JsonObject = config.getJsonObject("http")
         val dbConfig: JsonObject = config.getJsonObject("db")
         val futServer = async { createHttpServer(httpConfig) }
         val futSQLClient = async { createSQLClient(dbConfig) }
-        this.graphQL = GraphQLProvider().provide()
         this.httpServer = futServer.await()
         this.sqlClient = futSQLClient.await()
+        this.graphQL = GraphQLProvider(vertx, sqlClient).provide()
     }
 
     /**
@@ -160,17 +160,5 @@ class RuinedVerticle : CoroutineVerticle() {
 
     companion object {
         private val logger = LoggerFactory.getLogger(RuinedVerticle::class.java)
-    }
-
-    /**
-     * Helper function that adds the method 'suspendingHandler' to the Route class.
-     * This is useful when one wishes to set a suspending handler to a Route.
-     */
-    private fun Route.suspendingHandler(cb: suspend (RoutingContext)->Unit) {
-        this.handler { ctx ->
-            launch(vertx.dispatcher()) {
-                cb(ctx)
-            }
-        }
     }
 }

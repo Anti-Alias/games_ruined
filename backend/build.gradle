@@ -15,6 +15,7 @@ ext {
     vertx_version='3.8.1'
     slf4j_version='1.7.30'
     graphql_version='13.0'
+    kotlin_module_version='2.9.2'
 }
 
 // IP of docker machine. Defaults to localhost if environment variable is not set.
@@ -40,6 +41,7 @@ dependencies {
     implementation "io.vertx:vertx-config:$vertx_version"
     implementation "org.slf4j:slf4j-api:$slf4j_version"
     implementation "com.graphql-java:graphql-java:$graphql_version"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$kotlin_module_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
@@ -76,7 +78,7 @@ task startApp(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main 'io.vertx.core.Launcher'
     args 'run', 'ruined.RuinedVerticle',
-            '--redeploy="build/classes/kotlin/**/*.class"',
+            '--redeploy="build/classes/kotlin/**/*.class,build/resources/main/graphql/*"',
             '--launcher-class="io.vertx.core.Launcher"',
             '--java-opts', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005'
 }

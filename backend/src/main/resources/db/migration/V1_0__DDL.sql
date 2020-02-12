@@ -22,8 +22,8 @@ CREATE TABLE "platform" (
 
 CREATE TABLE "game" (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
     platform_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
     FOREIGN KEY (platform_id) REFERENCES "platform"(id)
 );
 
