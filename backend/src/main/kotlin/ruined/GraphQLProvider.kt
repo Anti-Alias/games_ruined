@@ -21,14 +21,12 @@ class GraphQLProvider(private val vertx: Vertx, private val sqlClient: SQLClient
      * Provides the GraphQL instance to be used in the application.
      */
     fun provide(): GraphQL {
-        val schema = createSchema()                                                         // Schema as a string
-        val registry = SchemaParser().parse(schema)                                         // Types from schema
-        val runtimeWiring = createRuntimeWiring()                                           // Builds runtime wiring for execution of schema
-        val graphqlSchema = SchemaGenerator().makeExecutableSchema(registry, runtimeWiring) // Builds final schema
-        return GraphQL.newGraphQL(graphqlSchema).build()                                    // Creates GraphQL instance from schema
+        val schema = javaClass.classLoader.getResource("graphql/schema.graphql")!!.readText()   // Schema as a string
+        val registry = SchemaParser().parse(schema)                                             // Types from schema
+        val runtimeWiring = createRuntimeWiring()                                               // Builds runtime wiring for execution of schema
+        val graphqlSchema = SchemaGenerator().makeExecutableSchema(registry, runtimeWiring)     // Builds final schema
+        return GraphQL.newGraphQL(graphqlSchema).build()                                        // Creates GraphQL instance from schema
     }
-
-    private fun createSchema(): String = javaClass.classLoader.getResource("graphql/schema.graphql")!!.readText()
 
     /**
      * Wires up the graphql schema with the execution of it.
