@@ -1,21 +1,14 @@
 package ruined
 
 import graphql.GraphQL
-import graphql.schema.DataFetchingEnvironment
-import graphql.schema.StaticDataFetcher
 import graphql.schema.idl.RuntimeWiring
 import graphql.schema.idl.RuntimeWiring.newRuntimeWiring
 import graphql.schema.idl.SchemaGenerator
 import graphql.schema.idl.SchemaParser
-import graphql.schema.idl.TypeRuntimeWiring
 import io.vertx.core.Vertx
-import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.sql.SQLClient
-import io.vertx.kotlin.coroutines.dispatcher
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import ruined.datafetcher.GameDataFetchers
-import java.util.concurrent.CompletableFuture
+import ruined.datafetcher.PlatformDataFetchers
 
 /**
  * Provides GraphQL instance which handles GraphQL requests.
@@ -43,36 +36,18 @@ class GraphQLProvider(private val vertx: Vertx, private val sqlClient: SQLClient
     private fun createRuntimeWiring(): RuntimeWiring {
 
         // Creates objects with data fetcher methods
-        val gdf = GameDataFetchers(sqlClient)
+        val gameDataFetchers = GameDataFetchers(sqlClient)
+        val platformDataFetchers = PlatformDataFetchers(sqlClient)
+
+        // Builds implementation for data fetchers
         return newRuntimeWiring()
             .type("Query") {
-                it.dataFetcher("hello", StaticDataFetcher("world"))
-                it.suspendingDataFetcher("games") {env -> gdf.games(env) }
+                it.dataFetcher("games", gameDataFetchers::games)
+                it.dataFetcher("platforms", platformDataFetchers::platforms)
+            }
+            .type("Game") {
+                it.dataFetcher("platform", gameDataFetchers::platform)
             }
             .build()
-    }
-
-    /**
-     * Helper function for adding suspending lambdas as data fetchers.
-     */
-    fun <T> TypeRuntimeWiring.Builder.suspendingDataFetcher(
-        fieldName: String,
-        callback: suspend (DataFetchingEnvironment)-> T
-    ): TypeRuntimeWiring.Builder = this.dataFetcher(fieldName) { environ ->
-        val fut = CompletableFuture<T>()
-        GlobalScope.launch(vertx.dispatcher()) {
-            try {
-                fut.complete(callback(environ))
-            }
-            catch(t: Throwable) {
-                fut.completeExceptionally(t)
-                logger.warn("Data fetching failed", t)
-            }
-        }
-        fut
-    }
-
-    companion object {
-        val logger = LoggerFactory.getLogger(GraphQLProvider::class.java)
     }
 }

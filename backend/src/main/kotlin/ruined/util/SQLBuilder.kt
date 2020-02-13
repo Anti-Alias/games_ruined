@@ -4,11 +4,12 @@ import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.sql.SQLClient
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
+import java.util.concurrent.CompletableFuture
 
 class SQLBuilder {
     private val builder = StringBuilder()
     private val params = JsonArray()
-    private var buffer: String? = null
+    private var conjunction: String? = null
 
     fun select(vararg columnNames: String): SQLBuilder {
         builder.append("SELECT ")
@@ -23,7 +24,7 @@ class SQLBuilder {
     }
 
     fun from(tableName: String): SQLBuilder {
-        builder.append(" FROM \"").append(tableName).append("\" ")
+        builder.append("FROM \"").append(tableName).append("\" ")
         return this
     }
 
@@ -34,20 +35,20 @@ class SQLBuilder {
     }
 
     fun where(): SQLBuilder {
-        if(buffer == null)
-            buffer = "WHERE "
+        if(conjunction == null)
+            conjunction = "WHERE "
         return this
     }
 
     fun and(): SQLBuilder {
-        if(buffer == null)
-            buffer = "AND "
+        if(conjunction == null)
+            conjunction = "AND "
         return this
     }
 
     fun or(): SQLBuilder {
-        if(buffer == null)
-            buffer = "OR "
+        if(conjunction == null)
+            conjunction = "OR "
         return this
     }
 
@@ -99,6 +100,7 @@ class SQLBuilder {
      * Appends character '('. Useful for starting subqueries.
      */
     fun begin(): SQLBuilder {
+        conjunction = null
         builder.append('(')
         return this
     }
@@ -107,10 +109,10 @@ class SQLBuilder {
      * Appends character ')'. Useful for terminating subqueries.
      */
     fun end(): SQLBuilder {
+        conjunction = null
         builder.append(')')
         return this
     }
-
 
     /**
      * Equivalent of compare(columnName, "==", value, ignoreNull)
@@ -149,12 +151,23 @@ class SQLBuilder {
         compare(columnName, ">=", value, ignoreNull)
 
     /**
+     * Appends limit statement.
+     */
+    fun limit(limit: Int): SQLBuilder {
+        builder.append("LIMIT ? ")
+        params.add(limit)
+        return this
+    }
+
+    /**
      * Defensive copy of all parameters passed in.
      */
     fun params(): JsonArray = params.copy()
 
     /**
-     * Makes a query to a database using an SQL client.
+     * Makes a suspending query to a database using an SQL client.
+     * @param sqlClient [SQLClient] to use.
+     * @param converter Callback function to convert the json objects to domain objects.
      */
     suspend inline fun <T> query(sqlClient: SQLClient, converter: (JsonObject)->T): List<T> {
         val query: String = toString()
@@ -164,9 +177,54 @@ class SQLBuilder {
             .map { obj -> converter(obj) }
     }
 
+    /**
+     * Makes a suspending query to a database using an SQL client.
+     * @param sqlClient [SQLClient] to use.
+     * @param converter Callback function to convert the json objects to domain objects.
+     */
+    suspend inline fun <T> querySingle(sqlClient: SQLClient, converter: (JsonObject)->T): T? = this
+        .query(sqlClient, converter)
+        .firstOrNull()
+
+    /**
+     * Makes a query to a database using an SQL client.
+     * @param sqlClient [SQLClient] to use.
+     * @param converter Callback function to convert the json objects to domain objects.
+     * @return Future results.
+     */
+    fun <T> queryFuture(sqlClient: SQLClient, converter: (JsonObject)->T): CompletableFuture<List<T>> {
+        val query: String = toString()
+        val fut = CompletableFuture<List<T>>()
+        sqlClient.queryWithParams(query, params()) { result ->
+            if(result.succeeded()) {
+                val rs = result.result()
+                val value: List<T> = rs.rows
+                    .map { it as JsonObject }
+                    .map { obj -> converter(obj) }
+                fut.complete(value)
+            }
+            else {
+                fut.completeExceptionally(result.cause())
+            }
+        }
+        return fut
+    }
+
+    /**
+     * Makes a query to a database using an SQL client.
+     * @param sqlClient [SQLClient] to use.
+     * @param converter Callback function to convert the json objects to domain objects.
+     * @return Future of first result or null if not found.
+     */
+    fun <T> querySingleFuture(sqlClient: SQLClient, converter: (JsonObject)->T): CompletableFuture<T?> = this
+        .queryFuture(sqlClient, converter)
+        .thenApply { it.firstOrNull() }
+
     private fun flush() {
-        if(buffer != null)
-            builder.append(buffer)
+        if(conjunction != null) {
+            builder.append(conjunction)
+            conjunction = null
+        }
     }
 
     override fun toString(): String = builder.toString()

@@ -9,10 +9,12 @@ import io.vertx.core.json.JsonObject
  */
 data class Game(
     val id: Int,
-    val name: String
+    val name: String,
+    val platformId: Int
 ) {
     constructor(obj: JsonObject) : this(
         obj.getInteger("id"),
-        obj.getString("name")
+        obj.getString("name"),
+        obj.getInteger("platform_id")
     )
 }

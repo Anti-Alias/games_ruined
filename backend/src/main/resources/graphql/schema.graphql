@@ -1,6 +1,6 @@
 type Query {
-    hello: String
-    games(id: ID=null, name: String=null, platformId: ID=null): [Game!]
+    games(id: ID = null, name: String = null, platformId: ID = null): [Game!]
+    platforms(id: ID = null, name: String = null, simpleName: String = null): [Platform!]
 }
 
 type User {
