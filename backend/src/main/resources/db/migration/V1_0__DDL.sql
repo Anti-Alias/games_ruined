@@ -5,11 +5,20 @@ CREATE TABLE "user" (
     salt TEXT NOT NULL
 );
 
+CREATE TABLE "profile" (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    avatar_url TEXT DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id)
+);
+
 CREATE TYPE RESOURCE_TYPE AS ENUM('TEXTURE', 'SOUND');
 
 CREATE TABLE "resource" (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
     type RESOURCE_TYPE NOT NULL,
     FOREIGN KEY (user_id) REFERENCES "user"(id)
 );

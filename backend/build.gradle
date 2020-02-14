@@ -114,9 +114,11 @@ task stopApp(type: Exec) {
         // Missing *Nix implementation
     }
 }
-
-compileKotlin.kotlinOptions.jvmTarget = '1.8'
-
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
 flywayMigrate.dependsOn(':startContainers')
 updateDB.dependsOn(':refreshDB', ':flywayMigrate')
 startApp.dependsOn(':startContainers', ':preprocessConfigs')

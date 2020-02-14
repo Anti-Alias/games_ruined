@@ -1,5 +1,7 @@
 package ruined.domain
 
+import io.vertx.core.json.JsonObject
+
 /**
  * User domain entity.
  * @property id ID of the user.
@@ -12,4 +14,11 @@ data class User(
     val email: String,
     val password: String,
     val salt: String
-)
+) {
+    constructor(obj: JsonObject) : this(
+        obj.getInteger("id"),
+        obj.getString("email"),
+        obj.getString("password"),
+        obj.getString("salt")
+    )
+}

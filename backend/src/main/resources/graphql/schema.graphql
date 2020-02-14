@@ -1,6 +1,12 @@
 type Query {
     games(id: ID = null, name: String = null, platformId: ID = null): [Game!]
     platforms(id: ID = null, name: String = null, simpleName: String = null): [Platform!]
+    resources(id: ID = null, name: String = null, type: ResourceType = null): [Resource!]
+}
+
+type Mutation {
+    createUser(input: UserInput!): User
+    createResource(input: ResourceInput!): Resource
 }
 
 type User {
@@ -8,10 +14,30 @@ type User {
     email: String!
 }
 
+input UserInput {
+    email: String!
+    username: String!
+    password: String!
+}
+
+type Profile {
+    id: ID!
+    user_id: ID!
+    username: String!
+    avatarURL: String
+}
+
 type Resource {
     id: ID!
+    name: String!
     type: ResourceType!
-    user: User!
+    profile: Profile!
+}
+
+input ResourceInput {
+    name: String!
+    type: ResourceType!
+    userId: ID!
 }
 
 type Game {
