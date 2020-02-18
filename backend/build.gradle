@@ -23,7 +23,8 @@ def docker_ip = System.getenv().getOrDefault("DOCKER_IP", "localhost")
 
 // Helpful function that determines if this machine is running on Windows or not.
 def isWindows() {
-    return System.env['OS'].contains('Windows')
+    def env = System.env['OS']
+    return env != null && env.contains('Windows')
 }
 
 repositories {
@@ -72,13 +73,23 @@ task refreshDB() {
     }
 }
 
+task sleep() {
+    group 'ruined.helpers'
+    description 'Sleeps for 500 milliseconds'
+    doLast {
+        println('Sleeping for 500ms...')
+        Thread.sleep(500)
+    }
+}
+
 task startApp(type: JavaExec) {
     group 'ruined'
     description 'Runs the application in the foreground. Redploys code when classes are rebuilt.'
     classpath sourceSets.main.runtimeClasspath
     main 'io.vertx.core.Launcher'
     args 'run', 'ruined.RuinedVerticle',
-            '--redeploy="build/classes/kotlin/**/*.class,build/resources/main/graphql/*"',
+            "--redeploy=**/*.class,build/resources/main/graphql/*'",
+            '--on-redeploy=./gradlew sleep',
             '--launcher-class="io.vertx.core.Launcher"',
             '--java-opts', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005'
 }

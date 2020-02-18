@@ -68,7 +68,9 @@ class RuinedVerticle : CoroutineVerticle() {
         server.requestHandler(router)
         val host = config.getString("host")
         val port = config.getInteger("port")
+        logger.info("Starting HTTP server at $host:$port...")
         server.listenAwait(port, host)
+        logger.info("HTTP server started")
         return server
     }
 
@@ -103,12 +105,13 @@ class RuinedVerticle : CoroutineVerticle() {
     }
 
     fun handleHealthCheck(ctx: RoutingContext) {
-        ctx.response().end("Server up and running!!!")
+        ctx.response().end("Server up and running!!!!!!!!!!!!!!!!!")
     }
 
     fun handleGraphQL(ctx: RoutingContext) {
         try {
             // Parses body
+            val bodyString: String = ctx.bodyAsString
             val body: JsonObject = ctx.bodyAsJson
 
             // Builds execution input to pass into GraphQL instance
@@ -139,6 +142,7 @@ class RuinedVerticle : CoroutineVerticle() {
             ctx.response()
                 .setStatusCode(400)
                 .end("Could not parse JSON body")
+            logger.warn("Bad request", e)
         }
         catch(t: Throwable) {
             ctx.fail(500)
