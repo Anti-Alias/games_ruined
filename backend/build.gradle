@@ -15,6 +15,7 @@ ext {
     vertx_version='3.8.1'
     slf4j_version='1.7.30'
     graphql_version='13.0'
+    java_dataloader_version='2.2.3'
     kotlin_module_version='2.9.2'
 }
 
@@ -25,6 +26,20 @@ def docker_ip = System.getenv().getOrDefault("DOCKER_IP", "localhost")
 def isWindows() {
     def env = System.env['OS']
     return env != null && env.contains('Windows')
+}
+
+String generateConnectionType(String typ) {
+    return """
+type ${typ}Connection {
+    edges: [${typ}Edge!]!
+    pageInfo: PageInfo!
+}
+
+type ${typ}Edge {
+    node: ${typ}!
+    cursor: String!
+}
+""".strip()
 }
 
 repositories {
@@ -42,6 +57,7 @@ dependencies {
     implementation "io.vertx:vertx-config:$vertx_version"
     implementation "org.slf4j:slf4j-api:$slf4j_version"
     implementation "com.graphql-java:graphql-java:$graphql_version"
+    implementation "com.graphql-java:java-dataloader:$java_dataloader_version"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$kotlin_module_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
@@ -55,13 +71,24 @@ flyway {
 }
 
 task preprocessConfigs(type: Copy) {
-    group 'ruined'
+    group 'ruined.helpers'
     from('conf.templates') {
-        include '**/*.json'
+        include '**/*'
     }
     into 'conf'
     expand(DOCKER_IP: docker_ip)
 }
+
+task preprocessResources(type: Copy) {
+    group 'ruined.helpers'
+    from('src/main/resources.templates') {
+        include '**/*'
+    }
+    into 'src/main/resources'
+    expand(generateConnectionType: this.&generateConnectionType)
+}
+
+task preprocess
 
 task refreshDB() {
     group 'ruined.helpers'
@@ -75,10 +102,10 @@ task refreshDB() {
 
 task sleep() {
     group 'ruined.helpers'
-    description 'Sleeps for 500 milliseconds'
+    description 'Sleeps for 1000 milliseconds'
     doLast {
-        println('Sleeping for 500ms...')
-        Thread.sleep(500)
+        println('Sleeping for 10000ms...')
+        Thread.sleep(10000)
     }
 }
 
@@ -88,8 +115,8 @@ task startApp(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main 'io.vertx.core.Launcher'
     args 'run', 'ruined.RuinedVerticle',
-            "--redeploy=**/*.class,build/resources/main/graphql/*'",
-            '--on-redeploy=./gradlew sleep',
+            "--redeploy=build/classes/**/*.class,build/resources/**/*",
+            '--on-redeploy=sleep 1',
             '--launcher-class="io.vertx.core.Launcher"',
             '--java-opts', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005'
 }
@@ -130,7 +157,14 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         jvmTarget = "1.8"
     }
 }
+
+
+// Handles task dependencies
+preprocess.dependsOn(':preprocessConfigs', ':preprocessResources')
+build.dependsOn(':preprocess')
 flywayMigrate.dependsOn(':startContainers')
 updateDB.dependsOn(':refreshDB', ':flywayMigrate')
-startApp.dependsOn(':startContainers', ':preprocessConfigs')
+startApp.dependsOn(':startContainers', ':preprocess')
+
+// Handles task run order
 flywayMigrate.mustRunAfter(':refreshDB')

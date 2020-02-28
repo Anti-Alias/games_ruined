@@ -33,6 +33,7 @@ class RuinedVerticle : CoroutineVerticle() {
 
     private lateinit var httpServer: HttpServer
     private lateinit var sqlClient: AsyncSQLClient
+    private lateinit var graphQLProvider: GraphQLProvider
     private lateinit var graphQL: GraphQL
 
     /**
@@ -48,7 +49,8 @@ class RuinedVerticle : CoroutineVerticle() {
         val futSQLClient = async { createSQLClient(dbConfig) }
         this.httpServer = futServer.await()
         this.sqlClient = futSQLClient.await()
-        this.graphQL = GraphQLProvider(vertx, sqlClient).provide()
+        this.graphQLProvider = GraphQLProvider(vertx, sqlClient)
+        this.graphQL = graphQLProvider.provideGraphQL()
     }
 
     /**
@@ -111,7 +113,6 @@ class RuinedVerticle : CoroutineVerticle() {
     fun handleGraphQL(ctx: RoutingContext) {
         try {
             // Parses body
-            val bodyString: String = ctx.bodyAsString
             val body: JsonObject = ctx.bodyAsJson
 
             // Builds execution input to pass into GraphQL instance
@@ -122,6 +123,7 @@ class RuinedVerticle : CoroutineVerticle() {
                 inputBuilder.operationName(operationName)
             if(variables != null)
                 inputBuilder.variables(variables)
+            inputBuilder.dataLoaderRegistry(graphQLProvider.provideDataLoaderRegistry())
 
             // Executes input
             val fut = graphQL.executeAsync(inputBuilder.build())

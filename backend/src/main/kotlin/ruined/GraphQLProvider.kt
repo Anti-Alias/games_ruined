@@ -14,10 +14,13 @@ import io.vertx.core.Vertx
 import io.vertx.core.logging.Logger
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.sql.SQLClient
+import org.dataloader.DataLoader
+import org.dataloader.DataLoaderRegistry
 import ruined.datafetcher.GameDataFetchers
 import ruined.datafetcher.PlatformDataFetchers
 import ruined.datafetcher.ResourceDataFetchers
 import ruined.datafetcher.UserDataFetchers
+import ruined.batchloader.PlatformBatchLoader
 import ruined.exception.RuinedError
 import ruined.exception.RuinedException
 
@@ -31,7 +34,7 @@ class GraphQLProvider(private val vertx: Vertx, private val sqlClient: SQLClient
     /**
      * Provides the GraphQL instance to be used in the application.
      */
-    fun provide(): GraphQL {
+    fun provideGraphQL(): GraphQL {
         val schema = javaClass.classLoader.getResource("graphql/schema.graphql")!!.readText()   // Schema as a string
         val registry = SchemaParser().parse(schema)                                             // Types from schema
         val runtimeWiring = createRuntimeWiring()                                               // Builds runtime wiring for execution of schema
@@ -44,6 +47,9 @@ class GraphQLProvider(private val vertx: Vertx, private val sqlClient: SQLClient
             .mutationExecutionStrategy(AsyncExecutionStrategy(exceptionHandler))
             .build()
     }
+
+    fun provideDataLoaderRegistry(): DataLoaderRegistry = DataLoaderRegistry()
+        .register("platform", DataLoader.newDataLoader(PlatformBatchLoader(sqlClient)))
 
     /**
      * Wires up the graphql schema with the execution of it.
@@ -72,6 +78,9 @@ class GraphQLProvider(private val vertx: Vertx, private val sqlClient: SQLClient
             }
             .type("Resource") {
                 it.dataFetcher("profile", resourceDataFetchers::profile)
+            }
+            .type("Platform") {
+                it.dataFetcher("games", platformDataFetchers::games)
             }
             .build()
     }

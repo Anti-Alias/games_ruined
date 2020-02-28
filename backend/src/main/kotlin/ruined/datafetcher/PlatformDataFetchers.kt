@@ -2,6 +2,7 @@ package ruined.datafetcher
 
 import graphql.schema.DataFetchingEnvironment
 import io.vertx.ext.sql.SQLClient
+import ruined.domain.Game
 import ruined.domain.Platform
 import ruined.util.SQLBuilder
 import java.util.concurrent.CompletableFuture
@@ -27,4 +28,12 @@ class PlatformDataFetchers(val sqlClient: SQLClient) {
             .queryFuture(sqlClient, ::Platform)
     }
 
+    fun games(env: DataFetchingEnvironment): CompletableFuture<List<Game>> {
+        val platform: Platform = env.getSource()
+        return SQLBuilder()
+            .selectAll()
+            .from("game")
+            .where().eq("platform_id", platform.id)
+            .queryFuture(sqlClient, ::Game)
+    }
 }

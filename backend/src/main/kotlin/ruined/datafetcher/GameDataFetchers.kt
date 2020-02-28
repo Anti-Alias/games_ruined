@@ -33,11 +33,8 @@ class GameDataFetchers(private val sqlClient: SQLClient) {
      */
     fun platform(env: DataFetchingEnvironment): CompletableFuture<Platform?> {
         val game: Game = env.getSource()
-        return SQLBuilder()
-            .selectAll()
-            .from("platform")
-            .where().eq("id", game.platformId)
-            .limit(1)
-            .querySingleFuture(sqlClient, ::Platform)
+        return env
+            .getDataLoader<Int, Platform>("platform")
+            .load(game.platformId)
     }
 }

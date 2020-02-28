@@ -34,6 +34,11 @@ type Resource {
     profile: Profile!
 }
 
+enum ResourceType {
+    TEXTURE
+    SOUND
+}
+
 input ResourceInput {
     name: String!
     type: ResourceType!
@@ -50,9 +55,17 @@ type Platform {
     id: ID!
     name: String!
     simpleName: String!
+    games: [Game!]!
 }
 
-enum ResourceType {
-    TEXTURE
-    SOUND
+
+${generateConnectionType('Game')}
+
+${generateConnectionType('Platform')}
+
+type PageInfo {
+    hasPreviousPage: Boolean!
+    hasNextPage: Boolean!
+    startCursor: String!
+    endCursor: String!
 }

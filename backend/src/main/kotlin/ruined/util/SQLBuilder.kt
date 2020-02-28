@@ -2,6 +2,7 @@ package ruined.util
 
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
+import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.sql.SQLClient
 import io.vertx.ext.sql.SQLConnection
 import io.vertx.kotlin.ext.sql.queryWithParamsAwait
@@ -415,6 +416,7 @@ class SQLBuilder private constructor(
      */
     suspend inline fun <T> query(sqlClient: SQLClient, converter: (JsonObject)->T): List<T> {
         val query: String = toString()
+        logQuery(query)
         val rs = sqlClient.queryWithParamsAwait(query, params())
         return rs.rows
             .map { it as JsonObject }
@@ -429,6 +431,7 @@ class SQLBuilder private constructor(
      */
     suspend inline fun <T> query(sqlConnection: SQLConnection, converter: (JsonObject)->T): List<T> {
         val query: String = toString()
+        logQuery(query)
         val rs = sqlConnection.queryWithParamsAwait(query, params())
         return rs.rows
             .map { it as JsonObject }
@@ -463,6 +466,7 @@ class SQLBuilder private constructor(
      */
     fun <T> queryFuture(sqlClient: SQLClient, converter: (JsonObject)->T): CompletableFuture<List<T>> {
         val query: String = toString()
+        logQuery(query)
         val fut = CompletableFuture<List<T>>()
         sqlClient.queryWithParams(query, params()) { result ->
             if(result.succeeded()) {
@@ -487,6 +491,7 @@ class SQLBuilder private constructor(
      */
     fun <T> queryFuture(sqlConnection: SQLConnection, converter: (JsonObject)->T): CompletableFuture<List<T>> {
         val query: String = toString()
+        logQuery(query)
         val fut = CompletableFuture<List<T>>()
         sqlConnection.queryWithParams(query, params()) { result ->
             if(result.succeeded()) {
@@ -552,4 +557,12 @@ class SQLBuilder private constructor(
             builder.substring(1)
         else
             builder.toString()
+
+    fun logQuery(query: String) {
+        logger.debug("Param count: {0}, Query: {1}", params.size(), query)
+    }
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(SQLBuilder::class.java)
+    }
 }
