@@ -559,7 +559,7 @@ class SQLBuilder private constructor(
             builder.toString()
 
     fun logQuery(query: String) {
-        logger.debug("Param count: {0}, Query: {1}", params.size(), query)
+        logger.debug("Executing SQL: ''{0}''", query)
     }
 
     companion object {

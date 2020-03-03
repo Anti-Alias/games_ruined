@@ -67,6 +67,9 @@ flyway {
     url = "jdbc:postgresql://${docker_ip}/ruined"
     user = 'admin'
     password = 'admin'
+}
+
+flywayMigrate {
     connectRetries = 5
 }
 

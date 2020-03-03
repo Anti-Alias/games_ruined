@@ -1,0 +1,87 @@
+type Query {
+    games(id: ID = null, name: String = null, platformId: ID = null): [Game!]
+    platforms(id: ID = null, name: String = null, simpleName: String = null): [Platform!]
+    resources(id: ID = null, name: String = null, type: ResourceType = null): [Resource!]
+}
+
+type Mutation {
+    createUser(input: UserInput!): User
+    createResource(input: ResourceInput!): Resource
+}
+
+type User {
+    id: ID!
+    email: String!
+}
+
+input UserInput {
+    email: String!
+    username: String!
+    password: String!
+}
+
+type Profile {
+    id: ID!
+    user_id: ID!
+    username: String!
+    avatarURL: String
+}
+
+type Resource {
+    id: ID!
+    name: String!
+    type: ResourceType!
+    profile: Profile!
+}
+
+enum ResourceType {
+    TEXTURE
+    SOUND
+}
+
+input ResourceInput {
+    name: String!
+    type: ResourceType!
+    userId: ID!
+}
+
+type Game {
+    id: ID!
+    name: String!
+    platform: Platform!
+}
+
+type Platform {
+    id: ID!
+    name: String!
+    simpleName: String!
+    games: [Game!]!
+}
+
+
+type GameConnection {
+    edges: [GameEdge!]!
+    pageInfo: PageInfo!
+}
+
+type GameEdge {
+    node: Game!
+    cursor: String!
+}
+
+type PlatformConnection {
+    edges: [PlatformEdge!]!
+    pageInfo: PageInfo!
+}
+
+type PlatformEdge {
+    node: Platform!
+    cursor: String!
+}
+
+type PageInfo {
+    hasPreviousPage: Boolean!
+    hasNextPage: Boolean!
+    startCursor: String!
+    endCursor: String!
+}
