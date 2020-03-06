@@ -21,3 +21,7 @@ android/captures
 android/.externalNativeBuild
 android/.cxx
 
+# Terraform
+terraform/.terraform
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup

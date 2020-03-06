@@ -28,7 +28,7 @@ def isWindows() {
     return env != null && env.contains('Windows')
 }
 
-String generateConnectionType(String typ) {
+def generateConnectionType(typ) {
     return """
 type ${typ}Connection {
     edges: [${typ}Edge!]!
@@ -39,7 +39,7 @@ type ${typ}Edge {
     node: ${typ}!
     cursor: String!
 }
-""".strip()
+"""
 }
 
 repositories {
@@ -63,6 +63,16 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
 
+processResources {
+    from('src/main/resources') {
+        include '**/*.graphql'
+    }
+    expand(
+        DOCKER_IP: docker_ip,
+        generateConnectionType: this.&generateConnectionType
+    )
+}
+
 flyway {
     url = "jdbc:postgresql://${docker_ip}/ruined"
     user = 'admin'
@@ -71,24 +81,6 @@ flyway {
 
 flywayMigrate {
     connectRetries = 5
-}
-
-task preprocessConfigs(type: Copy) {
-    group 'ruined.helpers'
-    from('conf.templates') {
-        include '**/*'
-    }
-    into 'conf'
-    expand(DOCKER_IP: docker_ip)
-}
-
-task preprocessResources(type: Copy) {
-    group 'ruined.helpers'
-    from('src/main/resources.templates') {
-        include '**/*'
-    }
-    into 'src/main/resources'
-    expand(generateConnectionType: this.&generateConnectionType)
 }
 
 task preprocess
@@ -105,6 +97,7 @@ task refreshDB() {
 
 task sleep() {
     group 'ruined.helpers'
+    description 'Sleeps for 1000 milliseconds'
     description 'Sleeps for 1000 milliseconds'
     doLast {
         println('Sleeping for 10000ms...')
@@ -163,11 +156,9 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 
 
 // Handles task dependencies
-preprocess.dependsOn(':preprocessConfigs', ':preprocessResources')
-build.dependsOn(':preprocess')
 flywayMigrate.dependsOn(':startContainers')
 updateDB.dependsOn(':refreshDB', ':flywayMigrate')
-startApp.dependsOn(':startContainers', ':preprocess')
+startApp.dependsOn(':startContainers', ':build')
 
 // Handles task run order
 flywayMigrate.mustRunAfter(':refreshDB')

@@ -59,25 +59,9 @@ type Platform {
 }
 
 
-type GameConnection {
-    edges: [GameEdge!]!
-    pageInfo: PageInfo!
-}
+${generateConnectionType('Game')}
 
-type GameEdge {
-    node: Game!
-    cursor: String!
-}
-
-type PlatformConnection {
-    edges: [PlatformEdge!]!
-    pageInfo: PageInfo!
-}
-
-type PlatformEdge {
-    node: Platform!
-    cursor: String!
-}
+${generateConnectionType('Platform')}
 
 type PageInfo {
     hasPreviousPage: Boolean!
