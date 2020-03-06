@@ -26,7 +26,7 @@ resource "aws_security_group" "ssh" {
         from_port = 22
         to_port = 22
         protocol = "tcp"
-        cidr_blocks = ["73.156.27.167/32"]
+        cidr_blocks = []
     }
 }
 
