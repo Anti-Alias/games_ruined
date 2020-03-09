@@ -1,10 +1,13 @@
-module "instance" {
-  source = "./instance"
+module "environment-dev" {
+  source = "./environment"
   ssh_cidr_block = var.ssh_cidr_block
+  env = "dev"
 }
 
-module "network" {
-  source = "./network"
+module "environment-stage" {
+  source = "./environment"
+  ssh_cidr_block = var.ssh_cidr_block
+  env = "stage"
 }
 
 # Defining provider and state location
